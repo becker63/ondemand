@@ -21,7 +21,7 @@ describe 'OnDemand browser test' do
     it { is_expected.to be_listening.on('127.0.0.1').with('tcp') }
   end
 
-  it 'successfully loads dashboard no path' do
+  it 'successfully loads dashboard no path man' do
     browser.goto ctr_base_url
     expect(browser.title).to eq('Dashboard - Open OnDemand')
   end
