@@ -49,17 +49,21 @@ jobs:
           restore-keys: |
             package-${{ runner.os }}-${{ matrix.dist }}-${{ matrix.arch }}-
 
-      # 2. Conditionally skip the build if package already exists
+      # 2.Conditionally decide whether a build is needed
       - name: Skip build if package exists
         id: check-build
         run: |
           if ls dist/*.rpm > /dev/null 2>&1; then
-            echo "skip_build=true" >> $GITHUB_OUTPUT
+            echo "skip_build=true"  >> "$GITHUB_OUTPUT"
           else
-            echo "skip_build=false" >> $GITHUB_OUTPUT
+            echo "skip_build=false" >> "$GITHUB_OUTPUT"
           fi
 
-      # 3. Run build only if needed
+      # 2a.Debug‑print the flag so we can verify it
+      - name: Debug skip flag
+        run: echo "::notice title=Skip‑flag::${{ steps.check-build.outputs.skip_build }}"
+
+      # 3.Run build only if needed
       - name: Build package
         if: steps.check-build.outputs.skip_build == 'false' && matrix.arch == 'x86_64'
         run: |
@@ -67,11 +71,6 @@ jobs:
             unset CONTAINER_RT
           fi
           bundle exec rake package:build[${{ matrix.dist }},${{ matrix.arch }}]
-        timeout-minutes: 10
-        env:
-          VERSION: "${{ matrix.version }}.0"
-          OOD_PACKAGING_DEBUG: "true"
-          CONTAINER_RT: "podman"
 
       # 4. Save cache after build
       - name: Save package cache
