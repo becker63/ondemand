@@ -40,10 +40,29 @@ jobs:
           bundler: "2.5.23"
           bundler-cache: true
 
-      - name: Build package
-        if: matrix.arch == 'x86_64'
+      # 1. Try to restore cached packages
+      - name: Restore package cache
+        uses: actions/cache@v3
+        with:
+          path: dist
+          key: package-${{ runner.os }}-${{ matrix.dist }}-${{ matrix.arch }}-${{ hashFiles('**/Gemfile.lock') }}
+          restore-keys: |
+            package-${{ runner.os }}-${{ matrix.dist }}-${{ matrix.arch }}-
+
+      # 2. Conditionally skip the build if package already exists
+      - name: Skip build if package exists
+        id: check-build
         run: |
-          # have to use docker for el8 packaging.
+          if ls dist/*.rpm > /dev/null 2>&1; then
+            echo "skip_build=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip_build=false" >> $GITHUB_OUTPUT
+          fi
+
+      # 3. Run build only if needed
+      - name: Build package
+        if: steps.check-build.outputs.skip_build == 'false' && matrix.arch == 'x86_64'
+        run: |
           if [[ "${{ matrix.dist }}" == "el8" ]]; then
             unset CONTAINER_RT
           fi
@@ -53,6 +72,14 @@ jobs:
           VERSION: "${{ matrix.version }}.0"
           OOD_PACKAGING_DEBUG: "true"
           CONTAINER_RT: "podman"
+
+      # 4. Save cache after build
+      - name: Save package cache
+        if: steps.check-build.outputs.skip_build == 'false'
+        uses: actions/cache@v3
+        with:
+          path: dist
+          key: package-${{ runner.os }}-${{ matrix.dist }}-${{ matrix.arch }}-${{ hashFiles('**/Gemfile.lock') }}
 
       - name: Run package tests
         if: matrix.arch == 'x86_64'
