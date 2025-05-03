@@ -43,7 +43,7 @@ jobs:
           path: dist
           key: package-${{ runner.os }}-${{ matrix.dist }}-${{ matrix.arch }}-${{ hashFiles('**/Gemfile.lock') }}
           restore-keys: |
-            package-${{ runner.os }}-${{ matrix.dist }}-${{ matrix.arch }}-
+            package-${{ runner.os }}-${{ matrix.dist }}-${{ matrix.arch }}-v2
 
       # 1a. Show what was actually restored
       - name: List dist contents
