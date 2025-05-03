@@ -2,9 +2,7 @@ name: Tests
 
 on:
   push:
-    branches:
-      - master
-      - e2e-testing
+    branches: [master, e2e-testing]
   pull_request:
   schedule:
     - cron: "0 2 * * *"
@@ -19,16 +17,14 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-22.04]
-        dist:
-          - el8
-        arch:
-          - x86_64
+        dist: [el8]
+        arch: [x86_64]
         version: ["4.0"]
     runs-on: ${{ matrix.os }}
     name: E2E test ${{ matrix.dist }}-${{ matrix.arch }}
 
     steps:
-      - name: Checkout ${{ github.sha	}}
+      - name: Checkout ${{ github.sha }}
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
@@ -40,7 +36,7 @@ jobs:
           bundler: "2.5.23"
           bundler-cache: true
 
-      # 1. Try to restore cached packages
+      # 1. Restore cached packages (if any)
       - name: Restore package cache
         uses: actions/cache@v3
         with:
@@ -49,7 +45,13 @@ jobs:
           restore-keys: |
             package-${{ runner.os }}-${{ matrix.dist }}-${{ matrix.arch }}-
 
-      # 2.Conditionally decide whether a build is needed
+      # 1a. Show what was actually restored
+      - name: List dist contents
+        run: |
+          echo "=== dist/ (after cache restore) ==="
+          find dist -maxdepth 3 -type f | head -n 20 || true
+
+      # 2. Decide whether we really need to build
       - name: Skip build if package exists
         id: check-build
         run: |
@@ -59,20 +61,24 @@ jobs:
             echo "skip_build=false" >> "$GITHUB_OUTPUT"
           fi
 
-      # 2a.Debug‑print the flag so we can verify it
+      # 2a. Quick visibility
       - name: Debug skip flag
-        run: echo "::notice title=Skip‑flag::${{ steps.check-build.outputs.skip_build }}"
+        run: echo "::notice title=Skip-flag::${{ steps.check-build.outputs.skip_build }}"
 
-      # 3.Run build only if needed
+      # 3. Build only when needed
       - name: Build package
         if: steps.check-build.outputs.skip_build == 'false' && matrix.arch == 'x86_64'
+        env:
+          VERSION: "${{ matrix.version }}.0"
+          OOD_PACKAGING_DEBUG: "true"
+          CONTAINER_RT: podman
         run: |
           if [[ "${{ matrix.dist }}" == "el8" ]]; then
-            unset CONTAINER_RT
+            unset CONTAINER_RT   # forces docker/podman selection inside task
           fi
           bundle exec rake package:build[${{ matrix.dist }},${{ matrix.arch }}]
 
-      # 4. Save cache after build
+      # 4. Save new/updated artifacts back to cache
       - name: Save package cache
         if: steps.check-build.outputs.skip_build == 'false'
         uses: actions/cache@v3
@@ -80,58 +86,10 @@ jobs:
           path: dist
           key: package-${{ runner.os }}-${{ matrix.dist }}-${{ matrix.arch }}-${{ hashFiles('**/Gemfile.lock') }}
 
+      # 5. Run your E2E tests
       - name: Run package tests
         if: matrix.arch == 'x86_64'
-        run: bundle exec rake test:e2e
         env:
           BEAKER_set: ${{ matrix.dist }}
           OOD_BUILD_REPO: ${{ matrix.version }}
-
-      - name: arch distro
-        if: ${{ matrix.arch != 'x86_64' && github.event_name == 'schedule' }}
-        run: |
-          DISTRO=$(echo "${{ matrix.os }}" | sed 's|\-||g')
-          echo "DISTRO=${DISTRO}" >> $GITHUB_ENV
-          if [ "${{ matrix.arch }}" == "aarch64" ]; then
-            echo "PLATFORM=linux/arm64" >> $GITHUB_ENV
-          fi
-          if [ "${{ matrix.arch }}" == "ppc64le" ]; then
-            echo "PLATFORM=linux/ppc64le" >> $GITHUB_ENV
-          fi
-
-      - name: Test OnDemand
-        if: ${{ matrix.arch != 'x86_64' && github.event_name == 'schedule' }}
-        uses: uraimo/run-on-arch-action@v2
-        with:
-          arch: ${{ matrix.arch }}
-          distro: ${{ env.DISTRO }}
-          githubToken: ${{ github.token }}
-          install: |
-            apt update -y
-            apt install -y ruby-bundler ruby-dev build-essential git \
-              apt-transport-https ca-certificates curl software-properties-common
-            # Not available for ppc64le
-            # apt install -y chromium-chromedriver
-            curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
-            echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
-            apt update -y
-            apt install -y docker-ce
-          dockerRunArgs: |
-            --platform ${{ env.PLATFORM }}
-          run: |
-            git config --global --add safe.directory $GITHUB_WORKSPACE
-            bundle install
-            bundle exec rake package:build[${{ matrix.dist }},${{ matrix.arch }}]
-            # e2e tests fail with issues accessing chorium
-            # bundle exec rake test:e2e
-          env: |
-            VERSION: "${{ matrix.version }}.0"
-            OOD_PACKAGING_DEBUG: 'true'
-            BEAKER_set: ${{ matrix.dist }}-${{ matrix.arch }}
-            OOD_BUILD_REPO: ${{ matrix.version }}
-            DOCKER_IN_DOCKER: 'true'
-
-      - name: Debug failure
-        if: failure()
-        run: |
-          find tmp/e2e_ctr/ -type f -name *.log -exec cat {} +
+        run: bundle exec rake test:e2e
