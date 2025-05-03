@@ -10,6 +10,21 @@ describe 'OnDemand Dex proxy test' do
     update_ood_portal
     restart_apache
     restart_dex
+
+    # ----- wait until Dex answers HTTP 200 -----
+    require 'net/http'
+    uri = URI('http://localhost:5556/.well-known/openid-configuration')
+    Timeout.timeout(30) do
+      loop do
+        begin
+          resp = Net::HTTP.get_response(uri)
+          break if resp&.code == '200'
+        rescue StandardError
+          # service not up yet
+        end
+        sleep 1
+      end
+    end
   end
 
   after(:all) do
