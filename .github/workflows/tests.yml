@@ -53,7 +53,7 @@ jobs:
       - name: Skip build if package exists
         id: check-build
         run: |
-          if ls dist/*.rpm > /dev/null 2>&1; then
+          if find dist -type f -name '*.rpm' -print -quit | grep -q .; then
             echo "skip_build=true"  >> "$GITHUB_OUTPUT"
           else
             echo "skip_build=false" >> "$GITHUB_OUTPUT"
