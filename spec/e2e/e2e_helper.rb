@@ -4,13 +4,13 @@ require 'watir'
 
 def save_container_state
   cache_dir = '/tmp/docker-cache'
-  on hosts, "mkdir -p #{cache_dir}"
+  `mkdir -p #{cache_dir}`
 
   hosts.each do |host|
     # Commit current container state to an image
-    on host, "docker commit ondemand-#{host} ondemand-#{host}-cached"
+    `docker commit ondemand-#{host} ondemand-#{host}-cached`
     # Save the image
-    on host, "docker save ondemand-#{host}-cached > #{cache_dir}/container.tar"
+    `docker save ondemand-#{host}-cached > #{cache_dir}/container.tar`
   end
 end
 
@@ -19,10 +19,9 @@ def load_container_state
   cache_file = "#{cache_dir}/container.tar"
 
   hosts.each do |host|
-    result = on host, "test -f #{cache_file}", accept_all_exit_codes: true
-    if result.exit_code == 0
-      on host, "docker load < #{cache_file}"
-      on host, "docker tag ondemand-#{host}-cached ondemand-#{host}"
+    if File.exist?(cache_file)
+      `docker load < #{cache_file}`
+      `docker tag ondemand-#{host}-cached ondemand-#{host}`
     end
   end
 end
