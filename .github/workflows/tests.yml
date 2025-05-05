@@ -92,4 +92,27 @@ jobs:
         env:
           BEAKER_set: ${{ matrix.dist }}
           OOD_BUILD_REPO: ${{ matrix.version }}
-        run: bundle exec rake test:e2e
+        run: |
+          bundle exec rake test:e2e SPEC_OPTS="--format documentation --format json --out rspec_results.json"
+
+      - name: Analyze test times
+        if: always()
+        run: |
+          echo "=== Test Execution Times ===" > test_times.txt
+          echo "Format: seconds | file | test description" >> test_times.txt
+          echo "--------------------------------" >> test_times.txt
+          jq -r '.examples[] | "\(.run_time) | \(.file_path) | \(.full_description)"' rspec_results.json | sort -nr >> test_times.txt
+          cat test_times.txt
+
+          echo "=== Summary by File ===" >> test_times.txt
+          echo "Format: seconds | file" >> test_times.txt
+          echo "--------------------------------" >> test_times.txt
+          jq -r '.examples[] | "\(.file_path) \(.run_time)"' rspec_results.json | awk '{a[$1]+=$2} END{for(i in a) print a[i], "|", i}' | sort -nr >> test_times.txt
+          cat test_times.txt
+
+      - name: Upload test timing results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-timing-results
+          path: test_times.txt

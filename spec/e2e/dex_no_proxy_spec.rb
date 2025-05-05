@@ -12,6 +12,7 @@ describe 'OnDemand Dex proxy test' do
     restart_dex
 
     # ----- wait until Dex answers HTTP 200 -----
+    # We need to do this because build steps complete too quickly
     require 'net/http'
     uri = URI('http://localhost:5556/.well-known/openid-configuration')
     Timeout.timeout(30) do
