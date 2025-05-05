@@ -86,7 +86,6 @@ jobs:
           path: dist
           key: package-${{ runner.os }}-${{ matrix.dist }}-${{ matrix.arch }}-${{ hashFiles('**/Gemfile.lock') }}
 
-      # 5. Run your E2E tests
       - name: Run package tests
         if: matrix.arch == 'x86_64'
         env:
@@ -112,7 +111,7 @@ jobs:
 
       - name: Upload test timing results
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: test-timing-results
           path: test_times.txt
