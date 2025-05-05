@@ -29,6 +29,19 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Cache Docker images
+        id: cache-docker
+        uses: actions/cache@v3
+        with:
+          path: /tmp/docker-cache
+          key: docker-${{ runner.os }}-${{ matrix.dist }}-${{ hashFiles('spec/e2e/**/*') }}
+
+      - name: Load cached Docker image
+        if: steps.cache-docker.outputs.cache-hit == 'true'
+        run: |
+          mkdir -p /tmp/docker-cache
+          docker load < /tmp/docker-cache/container.tar || true
+
       - name: Setup Ruby using Bundler
         uses: ruby/setup-ruby@v1
         with:
@@ -93,6 +106,12 @@ jobs:
           OOD_BUILD_REPO: ${{ matrix.version }}
         run: |
           bundle exec rake test:e2e SPEC_OPTS="--format documentation --format json --out rspec_results.json"
+
+      - name: Save Docker image
+        if: always()
+        run: |
+          mkdir -p /tmp/docker-cache
+          docker save ondemand-${{ matrix.dist }} > /tmp/docker-cache/container.tar
 
       - name: Analyze test times
         if: always()

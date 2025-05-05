@@ -7,6 +7,8 @@ RSpec.configure do |c|
   # Readable test descriptions
   c.formatter = :documentation
   c.before(:suite) do
+    load_container_state
+    
     bootstrap_repos
     ondemand_repo
     install_ondemand
@@ -21,6 +23,7 @@ RSpec.configure do |c|
   end
 
   c.after(:suite) do
+    save_container_state
     dl_ctr_logs
   end
 end
