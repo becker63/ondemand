@@ -110,8 +110,13 @@ jobs:
       - name: Save Docker image
         if: always()
         run: |
-          mkdir -p /tmp/docker-cache
-          docker save ondemand-${{ matrix.dist }} > /tmp/docker-cache/container.tar
+          if [ -f /tmp/docker-cache/container.tar ]; then
+            echo "Found cached container, saving to GitHub cache"
+            exit 0
+          else
+            echo "No cached container found"
+            exit 1
+          fi
 
       - name: Analyze test times
         if: always()

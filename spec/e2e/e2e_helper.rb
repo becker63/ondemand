@@ -7,10 +7,15 @@ def save_container_state
   `mkdir -p #{cache_dir}`
 
   hosts.each do |host|
-    # Commit current container state to an image
-    `docker commit ondemand-#{host} ondemand-#{host}-cached`
-    # Save the image
-    `docker save ondemand-#{host}-cached > #{cache_dir}/container.tar`
+    container_name = "ondemand-#{host}"
+    # Check if container exists first
+    if system("docker ps -a | grep -q #{container_name}")
+      puts "Saving container state for #{container_name}"
+      `docker commit #{container_name} #{container_name}-cached`
+      `docker save #{container_name}-cached > #{cache_dir}/container.tar`
+    else
+      puts "Container #{container_name} not found"
+    end
   end
 end
 
