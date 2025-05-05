@@ -25,10 +25,13 @@ def load_container_state
 
   hosts.each do |host|
     if File.exist?(cache_file)
-      `docker load < #{cache_file}`
-      `docker tag ondemand-#{host}-cached ondemand-#{host}`
+      puts "Found cached container, attempting to load..."
+      system("docker load < #{cache_file}")
+      system("docker tag ondemand-#{host}-cached ondemand-#{host}")
+      return true
     end
   end
+  false
 end
 
 def new_browser
