@@ -11,7 +11,13 @@ RSpec.configure do |c|
 
     if cached
       puts "Restored from cached container with OnDemand installed..."
-      # Just need to reconfigure and restart services
+      # Need to reinstall Apache since it's a fresh container
+      if apt?
+        install_packages(['apache2'])
+      else
+        install_packages(['httpd'])
+      end
+      # Then continue with configuration
       fix_apache
       upload_portal_config('portal.yml')
       update_ood_portal
