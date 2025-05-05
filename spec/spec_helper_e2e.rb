@@ -7,18 +7,11 @@ RSpec.configure do |c|
   # Readable test descriptions
   c.formatter = :documentation
   c.before(:suite) do
-    # Try to load cached container first
     cached = load_container_state
 
     if cached
-      puts "Restored from cached container, running minimal setup..."
-      # Install Apache first since it's not in the container
-      if apt?
-        install_packages(['apache2'])
-      else
-        install_packages(['httpd'])
-      end
-      # Then continue with service setup
+      puts "Restored from cached container with OnDemand installed..."
+      # Just need to reconfigure and restart services
       fix_apache
       upload_portal_config('portal.yml')
       update_ood_portal
@@ -29,6 +22,9 @@ RSpec.configure do |c|
       bootstrap_repos
       ondemand_repo
       install_ondemand
+      # Save container state right after install_ondemand
+      save_container_state
+      # Continue with configuration
       fix_apache
       upload_portal_config('portal.yml')
       update_ood_portal
@@ -40,7 +36,6 @@ RSpec.configure do |c|
   end
 
   c.after(:suite) do
-    save_container_state
     dl_ctr_logs
   end
 end
