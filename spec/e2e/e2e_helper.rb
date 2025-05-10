@@ -198,12 +198,22 @@ end
 
 def install_ondemand
   if ['redhat', 'amazon'].include?(host_inventory['platform'])
+    # 1. Install the release RPM that sets up the web repo
     release_rpm = "https://yum.osc.edu/ondemand/latest/ondemand-release-web-#{build_repo_version}-1.#{dist}.noarch.rpm"
     on hosts, "[ -f /etc/yum.repos.d/ondemand-web.repo ] || #{packager} install -y #{release_rpm}"
+
+    # 2. Modify the repo to use build instead of release
     on hosts,
        "sed -i 's|ondemand/#{build_repo_version}/web|ondemand/build/#{build_repo_version}/web|g' /etc/yum.repos.d/ondemand-web.repo"
+
+    # 3. First install dependencies from web repo (dex doesn't need to be excluded)
+    install_packages(['ondemand-dex'])
+
+    # 4. Now exclude the packages we want from our local repo
     on hosts, "dnf config-manager --save --setopt ondemand-web.exclude='ondemand ondemand-gems* ondemand-selinux'"
-    install_packages(['ondemand', 'ondemand-dex', 'ondemand-selinux'])
+
+    # 5. Install the excluded packages (these should come from local repo)
+    install_packages(['ondemand', 'ondemand-selinux'])
   elsif apt?
     install_packages(['wget'])
     on hosts, "wget -O /tmp/ondemand-release.deb https://yum.osc.edu/ondemand/latest/ondemand-release-web_#{build_repo_version}.0-#{codename}_all.deb"
@@ -213,10 +223,12 @@ def install_ondemand
     on hosts, 'apt-get update'
     install_packages(['ondemand', 'ondemand-dex'])
   end
+
   if host_inventory['platform'] == 'amazon'
     on hosts, 'alternatives --install /usr/bin/node node /usr/bin/node-20 1'
     on hosts, 'alternatives --install /usr/bin/npm npm /usr/bin/npm-20 1'
   end
+
   # Avoid 'update_ood_portal --rpm' so that --insecure can be used
   on hosts, "sed -i 's|--rpm|--rpm --insecure|g' /etc/systemd/system/#{apache_service}.service.d/ood-portal.conf"
   on hosts, 'systemctl daemon-reload'
