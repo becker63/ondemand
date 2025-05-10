@@ -19,6 +19,7 @@ RSpec.configure do |c|
       end
       # Then continue with configuration
       fix_apache
+      on hosts, 'ls -l /etc/ood && ls -l /etc/ood/config || echo "no config dir"'
       upload_portal_config('portal.yml')
       update_ood_portal
       restart_apache
@@ -28,6 +29,7 @@ RSpec.configure do |c|
       bootstrap_repos
       ondemand_repo
       install_ondemand
+      on hosts, 'ls -l /etc/ood && ls -l /etc/ood/config || echo "no config dir"'
       # Save container state right after install_ondemand
       save_container_state
       # Continue with configuration
