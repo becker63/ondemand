@@ -4,7 +4,6 @@ require 'beaker-rspec'
 require 'e2e/e2e_helper'
 
 RSpec.configure do |c|
-  # Readable test descriptions
   c.formatter = :documentation
   c.before(:suite) do
     cached = load_container_state
@@ -12,31 +11,6 @@ RSpec.configure do |c|
     if cached
       puts "\n=== CACHED PATH ==="
       puts "Restored from cached container with OnDemand installed..."
-
-      puts "\n=== Installing Apache ==="
-      if apt?
-        install_packages(['apache2'])
-      else
-        install_packages(['httpd'])
-      end
-
-      puts "\n=== Fixing Apache ==="
-      fix_apache
-
-      puts "\n=== Checking directory state ==="
-      on hosts, 'ls -l /etc/ood && ls -l /etc/ood/config || echo "no config dir"'
-
-      puts "\n=== Uploading portal config ==="
-      upload_portal_config('portal.yml')
-
-      puts "\n=== Updating OOD portal ==="
-      update_ood_portal
-
-      puts "\n=== Restarting Apache ==="
-      restart_apache
-
-      puts "\n=== Restarting Dex ==="
-      restart_dex
     else
       puts "\n=== FRESH INSTALL PATH ==="
       puts "No cached container found, running full setup..."
@@ -47,30 +21,40 @@ RSpec.configure do |c|
       puts "\n=== Setting up OnDemand repo ==="
       ondemand_repo
 
-      puts "\n=== Installing OnDemand ==="
-      install_ondemand
-
-      puts "\n=== Checking directory state ==="
-      on hosts, 'ls -l /etc/ood && ls -l /etc/ood/config || echo "no config dir"'
-
       puts "\n=== Saving container state ==="
       save_container_state
+    end
 
-      puts "\n=== Fixing Apache ==="
-      fix_apache
+    # Common steps that need to happen in both paths
+    puts "\n=== Installing Apache ==="
+    if apt?
+      install_packages(['apache2'])
+    else
+      install_packages(['httpd'])
+    end
 
-      puts "\n=== Uploading portal config ==="
-      upload_portal_config('portal.yml')
+    puts "\n=== Installing OnDemand ==="
+    install_ondemand
 
-      puts "\n=== Updating OOD portal ==="
-      update_ood_portal
+    puts "\n=== Fixing Apache ==="
+    fix_apache
 
-      puts "\n=== Restarting Apache ==="
-      restart_apache
+    puts "\n=== Checking directory state ==="
+    on hosts, 'ls -l /etc/ood && ls -l /etc/ood/config || echo "no config dir"'
 
-      puts "\n=== Restarting Dex ==="
-      restart_dex
+    puts "\n=== Uploading portal config ==="
+    upload_portal_config('portal.yml')
 
+    puts "\n=== Updating OOD portal ==="
+    update_ood_portal
+
+    puts "\n=== Restarting Apache ==="
+    restart_apache
+
+    puts "\n=== Restarting Dex ==="
+    restart_dex
+
+    unless cached
       puts "\n=== Bootstrapping user ==="
       bootstrap_user
 
