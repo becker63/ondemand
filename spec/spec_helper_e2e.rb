@@ -17,6 +17,15 @@ RSpec.configure do |c|
     # Needed by node/rnode proxy tests
     bootstrap_flask
 
+    # Add debug output
+    on hosts, 'systemctl status ondemand-dex' do
+      puts "Dex status after restart: #{stdout}"
+    end
+    
+    on hosts, 'journalctl -u ondemand-dex --no-pager' do
+      puts "Dex logs: #{stdout}"
+    end
+
     # Add wait loop for Dex to be ready
     uri = URI('http://localhost:5556/.well-known/openid-configuration')
     Timeout.timeout(30) do
@@ -24,7 +33,8 @@ RSpec.configure do |c|
         begin
           resp = Net::HTTP.get_response(uri)
           break if resp&.code == '200'
-        rescue StandardError
+        rescue StandardError => e
+          puts "Dex not ready yet: #{e.message}"
           # service not up yet
         end
         sleep 1
