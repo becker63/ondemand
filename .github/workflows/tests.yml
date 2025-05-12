@@ -67,4 +67,4 @@ jobs:
         env:
           BEAKER_set: el8
         run: |
-          BEAKER_set=el8.yml bundle exec rake test:e2e
+          bundle exec rake test:e2e
