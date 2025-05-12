@@ -5,8 +5,30 @@ on:
   pull_request:
 
 jobs:
+  build-and-cache-image:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Build e2e Docker image
+        run: |
+          docker build -t ondemand-e2e:el8 -f spec/e2e/nodesets/Dockerfile.el8 .
+
+      - name: Save Docker image to tar
+        run: |
+          mkdir -p /tmp/docker-cache
+          docker save ondemand-e2e:el8 > /tmp/docker-cache/ondemand-e2e-el8.tar
+
+      - name: Cache Docker image
+        uses: actions/cache@v3
+        with:
+          path: /tmp/docker-cache
+          key: ondemand-e2e-el8-${{ hashFiles('spec/e2e/nodesets/Dockerfile.el8') }}
+
   e2e-el8:
     runs-on: ubuntu-22.04
+    needs: build-and-cache-image
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -14,33 +36,4 @@ jobs:
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: "3.0"
-          bundler: "2.5.23"
-          bundler-cache: true
-
-      - name: Restore Docker image cache
-        uses: actions/cache@v3
-        with:
-          path: /tmp/docker-cache
-          key: ondemand-e2e-el8-${{ hashFiles('spec/e2e/nodesets/Dockerfile.el8') }}
-
-      - name: Load cached Docker image
-        if: steps.cache-docker.outputs.cache-hit == 'true'
-        run: |
-          docker load < /tmp/docker-cache/ondemand-e2e-el8.tar || true
-
-      - name: Build e2e Docker image
-        run: |
-          docker build -t ondemand-e2e:el8 -f spec/e2e/nodesets/Dockerfile.el8 .
-
-      - name: Save Docker image to cache
-        if: always()
-        run: |
-          mkdir -p /tmp/docker-cache
-          docker save ondemand-e2e:el8 > /tmp/docker-cache/ondemand-e2e-el8.tar
-
-      - name: Run e2e tests
-        env:
-          BEAKER_set: el8
-        run: |
-          bundle exec rake test:e2e
+          ruby-version
