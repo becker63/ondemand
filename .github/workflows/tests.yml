@@ -67,4 +67,4 @@ jobs:
         env:
           BEAKER_set: el8
         run: |
-          bundle exec rake test:e2e
+          bundle exec rake test:e2e -- --fail-fast --format documentation --backtrace
