@@ -17,6 +17,12 @@ RSpec.configure do |c|
     # Needed by node/rnode proxy tests
     bootstrap_flask
 
+    # Debug: Check Dex config first
+    puts "\n=== Checking Dex Config ==="
+    on hosts, 'cat /etc/ood/dex/config.yaml' do |result|
+      puts result.stdout
+    end
+
     # Debug: Check Dex status and logs
     puts "\n=== Checking Dex Status ==="
     on hosts, 'systemctl status ondemand-dex' do |result|
@@ -28,12 +34,6 @@ RSpec.configure do |c|
 
     puts "\n=== Checking Dex Logs ==="
     on hosts, 'journalctl -u ondemand-dex --no-pager' do |result|
-      puts result.stdout
-    end
-
-    # Debug: Check Dex config
-    puts "\n=== Checking Dex Config ==="
-    on hosts, 'cat /etc/ood/dex/config.yaml' do |result|
       puts result.stdout
     end
   end
