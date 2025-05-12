@@ -1,16 +1,31 @@
 # spec/e2e/nodesets/Dockerfile.el8
+
 FROM almalinux:8
 
+# Install basic utilities and enable powertools
 RUN yum install -y dnf-utils && \
     dnf config-manager --set-enabled powertools && \
     yum install -y wget which cronie iproute initscripts langpacks-en glibc-all-langpacks && \
     yum install -y epel-release && \
     dnf -y module enable ruby:3.3 && \
     dnf -y module enable nodejs:20 && \
+    \
+    # Add the OnDemand repo
     yum install -y https://yum.osc.edu/ondemand/latest/ondemand-release-web-4.0-1.el8.noarch.rpm && \
+    # Point to the build repo instead of the default web repo
     sed -i 's|ondemand/4.0/web|ondemand/build/4.0/web|g' /etc/yum.repos.d/ondemand-web.repo && \
-    dnf config-manager --save --setopt ondemand-web.exclude='ondemand ondemand-gems* ondemand-selinux' && \
+    \
+    # Install OnDemand and related packages BEFORE setting the exclude filter
     yum install -y ondemand ondemand-dex ondemand-selinux && \
+    \
+    # Now set the exclude filter for future operations
+    dnf config-manager --save --setopt ondemand-web.exclude='ondemand ondemand-gems* ondemand-selinux' && \
+    \
+    # Install Python and Flask for test support
     yum install -y python3 python3-pip && \
     python3 -m pip install flask && \
+    \
+    # Clean up yum cache to reduce image size
     yum clean all
+
+# No ENTRYPOINT needed; Beaker will use /usr/sbin/init as the command via nodeset YAML
