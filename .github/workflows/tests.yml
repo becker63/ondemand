@@ -36,4 +36,22 @@ jobs:
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version
+          ruby-version: "3.0"
+          bundler: "2.5.23"
+          bundler-cache: true
+
+      - name: Restore Docker image cache
+        uses: actions/cache@v3
+        with:
+          path: /tmp/docker-cache
+          key: ondemand-e2e-el8-${{ hashFiles('spec/e2e/nodesets/Dockerfile.el8') }}
+
+      - name: Load cached Docker image
+        run: |
+          docker load < /tmp/docker-cache/ondemand-e2e-el8.tar || true
+
+      - name: Run e2e tests
+        env:
+          BEAKER_set: el8
+        run: |
+          bundle exec rake test:e2e
