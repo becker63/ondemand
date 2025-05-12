@@ -10,6 +10,22 @@ RSpec.configure do |c|
   c.before(:suite) do
     fix_apache
     upload_portal_config('portal.yml')
+    
+    # Debug: Check portal config BEFORE update
+    puts "\n=== Checking Portal Config BEFORE update ==="
+    on hosts, 'cat /etc/ood/config/ood_portal.yml' do |result|
+      puts result.stdout
+    end
+
+    # Debug: Check Dex config BEFORE update
+    puts "\n=== Checking Dex Config BEFORE update ==="
+    on hosts, 'ls -la /etc/ood/dex/' do |result|
+      puts result.stdout
+    end
+    on hosts, 'cat /etc/ood/dex/config.yaml' do |result|
+      puts result.stdout
+    end
+
     update_ood_portal
     restart_apache
     restart_dex
@@ -17,14 +33,14 @@ RSpec.configure do |c|
     # Needed by node/rnode proxy tests
     bootstrap_flask
 
-    # Debug: Check portal config
-    puts "\n=== Checking Portal Config ==="
+    # Debug: Check portal config AFTER update
+    puts "\n=== Checking Portal Config AFTER update ==="
     on hosts, 'cat /etc/ood/config/ood_portal.yml' do |result|
       puts result.stdout
     end
 
-    # Debug: Check Dex config
-    puts "\n=== Checking Dex Config ==="
+    # Debug: Check Dex config AFTER update
+    puts "\n=== Checking Dex Config AFTER update ==="
     on hosts, 'cat /etc/ood/dex/config.yaml' do |result|
       puts result.stdout
     end
