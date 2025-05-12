@@ -65,8 +65,11 @@ jobs:
         run: |
           docker load < /tmp/docker-cache/ondemand-e2e-el8.tar || true
 
+      - name: Print environment variables
+        run: env
+
       - name: Run e2e tests
         env:
           BEAKER_set: el8
         run: |
-          bundle exec rake test:e2e
+          BEAKER_set=el8.yml bundle exec rake test:e2e
