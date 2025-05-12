@@ -1,5 +1,3 @@
-# spec/e2e/nodesets/Dockerfile.el8
-
 FROM almalinux:8
 
 # Install basic utilities and enable powertools
@@ -15,7 +13,9 @@ RUN yum install -y dnf-utils && \
     # Point to the build repo instead of the default web repo
     sed -i 's|ondemand/4.0/web|ondemand/build/4.0/web|g' /etc/yum.repos.d/ondemand-web.repo && \
     \
-    # Install OnDemand and related packages BEFORE setting the exclude filter
+    # Remove any old versions and install specific build RPM to ensure correct ood-portal-generator
+    yum remove -y ondemand ondemand-dex ondemand-selinux || true && \
+    yum install -y https://yum.osc.edu/ondemand/4.0/build/el8/x86_64/ondemand-4.0.3-1.el8.x86_64.rpm && \
     yum install -y ondemand ondemand-dex ondemand-selinux && \
     \
     # Now set the exclude filter for future operations
