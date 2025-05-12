@@ -4,14 +4,10 @@ HOSTS:
       - agent
     platform: el-8-x86_64
     hypervisor: docker
-    image: almalinux:8
+    image: ondemand-e2e:el8
     docker_preserve_image: true
     docker_cmd:
       - '/usr/sbin/init'
-    docker_image_commands:
-      - 'yum install -y dnf-utils'
-      - 'dnf config-manager --set-enabled powertools'
-      - 'yum install -y wget which cronie iproute initscripts langpacks-en glibc-all-langpacks'
     docker_env:
       - LANG=en_US.UTF-8
       - LANGUAGE=en_US.UTF-8
@@ -33,4 +29,3 @@ CONFIG:
 ssh:
   password: root
   auth_methods: ["password"]
-
