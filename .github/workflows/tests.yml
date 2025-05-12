@@ -18,11 +18,6 @@ jobs:
           path: /tmp/docker-cache
           key: ondemand-e2e-el8-${{ hashFiles('spec/e2e/nodesets/Dockerfile.el8') }}
 
-      - name: Load cached Docker image
-        if: steps.cache-docker.outputs.cache-hit == 'true'
-        run: |
-          docker load < /tmp/docker-cache/ondemand-e2e-el8.tar || true
-
       - name: Build e2e Docker image
         if: steps.cache-docker.outputs.cache-hit != 'true'
         run: |
