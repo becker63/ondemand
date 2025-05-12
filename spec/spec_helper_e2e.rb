@@ -17,9 +17,12 @@ RSpec.configure do |c|
     # Needed by node/rnode proxy tests
     bootstrap_flask
 
-    # Add debug output
+    # Add debug output and fail fast if Dex fails to start
     on hosts, 'systemctl status ondemand-dex' do
       puts "Dex status after restart: #{stdout}"
+      if stdout.include?('failed to initialize server')
+        raise "Dex failed to start: #{stdout}"
+      end
     end
     
     on hosts, 'journalctl -u ondemand-dex --no-pager' do
@@ -35,7 +38,12 @@ RSpec.configure do |c|
           break if resp&.code == '200'
         rescue StandardError => e
           puts "Dex not ready yet: #{e.message}"
-          # service not up yet
+          # Check if Dex service is still running
+          on hosts, 'systemctl is-active ondemand-dex' do
+            if stdout.strip != 'active'
+              raise "Dex service is not active: #{stdout}"
+            end
+          end
         end
         sleep 1
       end
