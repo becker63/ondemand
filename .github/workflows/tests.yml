@@ -11,16 +11,31 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      - name: Cache Docker image
+        id: cache-docker
+        uses: actions/cache@v3
+        with:
+          path: /tmp/docker-cache
+          key: ondemand-e2e-el8-${{ hashFiles('spec/e2e/nodesets/Dockerfile.el8') }}
+
+      - name: Load cached Docker image
+        if: steps.cache-docker.outputs.cache-hit == 'true'
+        run: |
+          docker load < /tmp/docker-cache/ondemand-e2e-el8.tar || true
+
       - name: Build e2e Docker image
+        if: steps.cache-docker.outputs.cache-hit != 'true'
         run: |
           docker build -t ondemand-e2e:el8 -f spec/e2e/nodesets/Dockerfile.el8 .
 
       - name: Save Docker image to tar
+        if: steps.cache-docker.outputs.cache-hit != 'true'
         run: |
           mkdir -p /tmp/docker-cache
           docker save ondemand-e2e:el8 > /tmp/docker-cache/ondemand-e2e-el8.tar
 
-      - name: Cache Docker image
+      - name: Save Docker image to cache
+        if: steps.cache-docker.outputs.cache-hit != 'true'
         uses: actions/cache@v3
         with:
           path: /tmp/docker-cache
