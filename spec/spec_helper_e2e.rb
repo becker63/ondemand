@@ -17,24 +17,25 @@ RSpec.configure do |c|
     # Needed by node/rnode proxy tests
     bootstrap_flask
 
-    # Debug: Check Dex config first
+    # Debug: Check portal config
+    puts "\n=== Checking Portal Config ==="
+    on hosts, 'cat /etc/ood/config/ood_portal.yml' do |result|
+      puts result.stdout
+    end
+
+    # Debug: Check Dex config
     puts "\n=== Checking Dex Config ==="
     on hosts, 'cat /etc/ood/dex/config.yaml' do |result|
       puts result.stdout
     end
 
-    # Debug: Check Dex status and logs
+    # Debug: Check Dex status
     puts "\n=== Checking Dex Status ==="
     on hosts, 'systemctl status ondemand-dex' do |result|
       puts result.stdout
       if result.stdout.include?('failed to initialize server')
         raise "Dex failed to start: #{result.stdout}"
       end
-    end
-
-    puts "\n=== Checking Dex Logs ==="
-    on hosts, 'journalctl -u ondemand-dex --no-pager' do |result|
-      puts result.stdout
     end
   end
 
